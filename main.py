@@ -17,9 +17,7 @@ def 取角色uid(cookies):
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Dest': 'empty',
         'Referer': 'https://act.mihoyo.com/',
-        # 'Accept-Encoding': 'gzip, deflate',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-        # 'Cookie': '_MHYUUID=45512d30-0b96-445e-eaeb-133f0fa9291a; mi18nLang=zh-cn; aliyungf_tc=96e0012e3c4347d8a4e9dddfb6cfef0d4b756e5424dfed37eecbe9dff7a32662; DEVICEFP_SEED_ID=ac54b91d66bbeb59; DEVICEFP_SEED_TIME=1726622786449; DEVICEFP=38d7fe7840ff9; ltuid=158853294; login_ticket=W2rkreRJ0EF3jidetinfj9n4MtkCMjJlqUGbw7Ut; account_id=158853294; ltoken=kr2XoPV8LflVvrYoue3lCCWccPOhP4BVpnwzo0SS; cookie_token=5nEOYo9LLdGTKfsYOSzrE7UIi6BVEAtcF0rlgT22',
     }
     params = {'game_biz': 'nap_cn',}
     response = requests.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie',params=params,cookies=cookies,headers=headers,verify=False)
@@ -36,7 +34,6 @@ def 取角色cookies():
     for cookie in cookie_文本.split(';'):
         key, value = cookie.strip().split('=')
         cookies[key] = value
-    print(cookies)
     return cookies
 
 def 取角色列表id(uid, cookies):
@@ -62,18 +59,19 @@ def 取角色列表id(uid, cookies):
         'Sec-Fetch-Dest': 'empty',
         'Referer': 'https://act.mihoyo.com/',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-    }
+     }
     params = {'server': 'prod_gf_cn','role_id': uid,}
-    response = requests.get('https://api-takumi-record.mihoyo.com/event/game_record_zzz/api/zzz/avatar/basic',params=params,cookies=cookies,headers=headers,verify=False)
-    json = response.json()
+    response = requests.get('https://api-takumi-record.mihoyo.com/event/game_record_zzz/api/zzz/avatar/basic', params = params, headers = headers, cookies = cookies, verify = False)
+    res = response.json()
     角色id字典 = {}
-    for jso in json['data']['avatar_list']:
+    for jso in res['data']['avatar_list']:
         键 = ''.join(re.findall(r'[\u4e00-\u9fff0-9]+', str(jso['full_name_mi18n'])))
         值 = str(jso['id'])
         角色id字典[键] = 值
     return 角色id字典
 
-def 取角色装备(cookies, 角色id):
+def 取角色装备(cookies, 角色id, uid):
+    print(角色id)
     headers = {
         'Host': 'api-takumi-record.mihoyo.com',
         'Connection': 'keep-alive',
@@ -97,7 +95,7 @@ def 取角色装备(cookies, 角色id):
         'Referer': 'https://act.mihoyo.com/',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
     }
-    response = requests.get(f'https://api-takumi-record.mihoyo.com/event/game_record_zzz/api/zzz/avatar/info?id_list[]={角色id}&need_wiki=true&server=prod_gf_cn&role_id=14177799',cookies=cookies,headers=headers,verify=False)
+    response = requests.get(f'https://api-takumi-record.mihoyo.com/event/game_record_zzz/api/zzz/avatar/info?id_list[]={角色id}&need_wiki=true&server=prod_gf_cn&role_id={uid}',cookies=cookies,headers=headers,verify=False)
     json = response.json()
     return json
 
@@ -201,7 +199,7 @@ def main():
         角色整体属性 = {}
         角色整体属性.clear()
 
-        json = 取角色装备(cookies, 值)
+        json = 取角色装备(cookies, 值, uid)
         角色属性 = 角色列表[键]
         try:
             音擎名 = json['data']['avatar_list'][0]['weapon']['name']
