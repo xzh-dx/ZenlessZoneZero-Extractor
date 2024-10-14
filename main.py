@@ -23,6 +23,7 @@ def 取角色uid(cookies):
     response = requests.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie',params=params,cookies=cookies,headers=headers,verify=False)
     json = response.json()
     uid = json['data']['list'][0]['game_uid']
+    print(f"获取到的角色uid为{uid}")
     return uid
 
 def 取角色cookies():
@@ -68,6 +69,7 @@ def 取角色列表id(uid, cookies):
         键 = ''.join(re.findall(r'[\u4e00-\u9fff0-9]+', str(jso['full_name_mi18n'])))
         值 = str(jso['id'])
         角色id字典[键] = 值
+    #print(f"角色id和字典: {角色id字典}")
     return 角色id字典
 
 def 取角色装备(cookies, 角色id, uid):
@@ -97,6 +99,7 @@ def 取角色装备(cookies, 角色id, uid):
     }
     response = requests.get(f'https://api-takumi-record.mihoyo.com/event/game_record_zzz/api/zzz/avatar/info?id_list[]={角色id}&need_wiki=true&server=prod_gf_cn&role_id={uid}',cookies=cookies,headers=headers,verify=False)
     json = response.json()
+    #print(f"获取的装备信息:{json}")
     return json
 
 def 读取字典(字典名):
@@ -110,6 +113,9 @@ def 保存字典(字典, 字典名):
         json.dump(字典, file, ensure_ascii=False, indent=4)
 
 def 转浮点数(值):
+    if isinstance(值, float):
+        return 值
+    值 = re.sub(r'[^0-9.\%]', '', 值)
     try:
         if '%' in 值:
             数 = float(值.replace('%', '')) / 100
@@ -122,12 +128,12 @@ def 转浮点数(值):
         return 值
 
 def 取驱动盘主属性返回字典(号, json):
-    驱动盘主属性字典 = {}
+    返回字典 = {}
     try:
-        驱动盘主属性字典['驱动盘名'] = json['data']['avatar_list'][0]['equip'][号 - 1]['equip_suit']['name']
+        返回字典['驱动盘名'] = json['data']['avatar_list'][0]['equip'][号 - 1]['equip_suit']['name']
     except:
-        驱动盘主属性字典['驱动盘名'] = '未佩戴驱动盘'
-    驱动盘主属性字典['驱动盘号'] = 号
+        返回字典['驱动盘名'] = '未佩戴驱动盘'
+    返回字典['驱动盘号'] = 号
     if 号 == 1:
         驱动盘主属性 = '小生命值'
     elif 号 == 2:
@@ -143,11 +149,11 @@ def 取驱动盘主属性返回字典(号, json):
         驱动盘主属性值 = 转浮点数(json['data']['avatar_list'][0]['equip'][号 - 1]['main_properties'][0]['base'])
     except:
         驱动盘主属性值 = 0
-    驱动盘主属性字典[驱动盘主属性] = 驱动盘主属性值
-    return 驱动盘主属性字典
+    返回字典[驱动盘主属性] = 驱动盘主属性值
+    return 返回字典
 
 def 取驱动盘随机属性返回字典(号, json):
-    驱动盘随机属性字典 = {}
+    返回字典 = {}
     for i in [0,1,2,3]:
         try:
             驱动盘随机属性 = json['data']['avatar_list'][0]['equip'][号 - 1]['properties'][i]['property_name']
@@ -161,13 +167,13 @@ def 取驱动盘随机属性返回字典(号, json):
             if 驱动盘随机属性 == '防御力':
                 if 驱动盘随机属性值 > 1:
                     驱动盘随机属性 = '小防御力'
-            驱动盘随机属性字典[驱动盘随机属性] = 驱动盘随机属性值
+            返回字典[驱动盘随机属性] = 驱动盘随机属性值
         except:
-            驱动盘随机属性字典[f'{i + 1}无'] = 0
-    return 驱动盘随机属性字典
+            返回字典[f'{i + 1}无'] = 0
+    return 返回字典
 
-def 识别驱动盘两件套(字典1, 字典2, 字典3, 字典4, 字典5, 字典6):
-    strings = [字典1['驱动盘名'], 字典2['驱动盘名'], 字典3['驱动盘名'], 字典4['驱动盘名'], 字典5['驱动盘名'], 字典6['驱动盘名']]
+def 识别驱动盘两件套(字符串1, 字符串2, 字符串3, 字符串4, 字符串5, 字符串6):
+    strings = [字符串1, 字符串2, 字符串3, 字符串4, 字符串5, 字符串6]
     套装 = Counter(strings)
     驱动盘两件套 = []
     索引 = 0
@@ -178,16 +184,53 @@ def 识别驱动盘两件套(字典1, 字典2, 字典3, 字典4, 字典5, 字典
 
             驱动盘两件套[索引] = 键  # 然后进行赋值
             索引 += 1
-    while '未佩戴驱动盘' in 驱动盘两件套:
-        驱动盘两件套.remove('未佩戴驱动盘')
     return 驱动盘两件套
 
 def 加载两件套属性库(两件套列表):
     两件套装数据 = 读取字典("驱动盘套装库")
     两件套属性 = {}
     for i in 两件套列表:
+        if i == "未佩戴驱动盘":
+            两件套属性.update({"无": 0})
+            break
         两件套属性.update(两件套装数据[i])
     return 两件套属性
+
+def 角色属性校正返回字典(角色属性, json):
+    返回字典 = 角色属性
+    for i in [0,1,2]:
+        键 = json['data']['avatar_list'][0]['properties'][i]['property_name']
+        值 = json['data']['avatar_list'][0]['properties'][i]
+        if 值['base'] == "":
+            返回字典[f"基础{键}"] = 转浮点数(值['final'])
+        else:
+            返回字典[f"基础{键}"] = 转浮点数(值['base'])
+    return 返回字典
+
+def 音擎属性校正返回字典(音擎属性, json):
+    返回字典 = 音擎属性
+    键 = json['data']['avatar_list'][0]['weapon']['properties'][0]['property_name']
+    值 = 转浮点数(json['data']['avatar_list'][0]['weapon']['properties'][0]['base'])
+    键2 = json['data']['avatar_list'][0]['weapon']['main_properties'][0]['property_name']
+    值2 = 转浮点数(json['data']['avatar_list'][0]['weapon']['main_properties'][0]['base'])
+    返回字典[键] = 值
+    返回字典[键2] = 值2
+    return 返回字典
+
+def 获取核心技属性(json ,角色属性):
+    返回字典 = {}
+    核心技强化情况 = json['data']['avatar_list'][0]['skills'][4]['level'] - 1
+    if 核心技强化情况 == 0:
+        返回字典["无"] = 0
+        返回字典["基础攻击力"] = 0
+        return 返回字典
+    映射关系 = {1: (1, 0),2: (1, 1),3: (2, 1),4: (2, 2),5: (3, 2),6: (3, 3)}
+    A, B = 映射关系[核心技强化情况]
+    键 = 角色属性['核心技属性']
+    值 = 转浮点数(角色属性['核心技值']) * A
+    返回字典[键] = round(值, 3)
+    返回字典["基础攻击力"] = 25 * B
+    return 返回字典
 
 def main():
     角色列表 = 读取字典("角色库")
@@ -201,12 +244,16 @@ def main():
 
         json = 取角色装备(cookies, 值, uid)
         角色属性 = 角色列表[键]
+        角色属性 = 角色属性校正返回字典(角色属性, json)
+        核心技属性 = 获取核心技属性(json, 角色属性)
         try:
             音擎名 = json['data']['avatar_list'][0]['weapon']['name']
             音擎名 = ''.join(re.findall(r'[\u4e00-\u9fff0-9]+', 音擎名))
             音擎属性 = 音擎列表[音擎名]
+            音擎属性 = 音擎属性校正返回字典(音擎属性, json)
         except:
             音擎属性 = {"音擎名": "未佩戴音擎","基础攻击力": 0,"无": 0}
+        角色属性["基础攻击力"] = 角色属性["基础攻击力"] - 音擎属性["基础攻击力"] - 核心技属性["基础攻击力"]
 
         驱动盘主属性字典1 = 取驱动盘主属性返回字典(1, json)
         驱动盘主属性字典2 = 取驱动盘主属性返回字典(2, json)
@@ -215,7 +262,7 @@ def main():
         驱动盘主属性字典5 = 取驱动盘主属性返回字典(5, json)
         驱动盘主属性字典6 = 取驱动盘主属性返回字典(6, json)
 
-        驱动盘两件套 = 识别驱动盘两件套(驱动盘主属性字典1, 驱动盘主属性字典2, 驱动盘主属性字典3, 驱动盘主属性字典4, 驱动盘主属性字典5, 驱动盘主属性字典6)
+        驱动盘两件套 = 识别驱动盘两件套(驱动盘主属性字典1['驱动盘名'], 驱动盘主属性字典2['驱动盘名'], 驱动盘主属性字典3['驱动盘名'], 驱动盘主属性字典4['驱动盘名'], 驱动盘主属性字典5['驱动盘名'], 驱动盘主属性字典6['驱动盘名'])
         两件套属性 = 加载两件套属性库(驱动盘两件套)
 
         驱动盘随机属性字典1 = 取驱动盘随机属性返回字典(1, json)
@@ -224,19 +271,6 @@ def main():
         驱动盘随机属性字典4 = 取驱动盘随机属性返回字典(4, json)
         驱动盘随机属性字典5 = 取驱动盘随机属性返回字典(5, json)
         驱动盘随机属性字典6 = 取驱动盘随机属性返回字典(6, json)
-
-        print(驱动盘主属性字典1)
-        print(驱动盘主属性字典2)
-        print(驱动盘主属性字典3)
-        print(驱动盘主属性字典4)
-        print(驱动盘主属性字典5)
-        print(驱动盘主属性字典6)
-        print(驱动盘随机属性字典1)
-        print(驱动盘随机属性字典2)
-        print(驱动盘随机属性字典3)
-        print(驱动盘随机属性字典4)
-        print(驱动盘随机属性字典5)
-        print(驱动盘随机属性字典6)
 
         角色整体属性["角色属性"] = 角色属性
         角色整体属性["音擎属性"] = 音擎属性
@@ -253,11 +287,10 @@ def main():
         角色整体属性["驱动盘随机属性4"] = 驱动盘随机属性字典4
         角色整体属性["驱动盘随机属性5"] = 驱动盘随机属性字典5
         角色整体属性["驱动盘随机属性6"] = 驱动盘随机属性字典6
-        角色整体属性["核心技属性"] = {'无' : 0}
+        角色整体属性["核心技属性"] = 核心技属性
 
         保存字典(角色整体属性, 键)
         print(键)
-
 
 if __name__ == "__main__":
     main()
