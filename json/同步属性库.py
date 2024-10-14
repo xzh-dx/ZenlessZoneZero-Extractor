@@ -138,6 +138,8 @@ def 更新角色库():
             i += 1
         i = 2
         for j in js['list'][6]['attr']:
+            if i == 5:
+                break
             value = re.search(r'>(\d+\.?\d*%?)<', j['value'])
             value = value.group(1)
             value = 转浮点数(value)
@@ -166,7 +168,6 @@ def 更新角色库():
                 value = 转浮点数(value)
                 角色库[键].update({角色属性[i]: value})
             i += 1
-
         js = json.loads(jso['data']['page']['modules'][8]['components'][0]['data'])
         j = js['tables'][0]['row'][0][1]
         soup = BeautifulSoup(j, 'html.parser')
@@ -175,9 +176,8 @@ def 更新角色库():
         s = so[0]
         if s == '异常掌控':
             s = '基础异常掌控'
-        v = re.findall(r'(\d+\.?\d*%?)', so[1])[0]
-        v = round(转浮点数(v) * 3, 3)
-        角色库[键].update({s: 角色库[键][s] + v})
+        角色库[键].update({'核心技属性': s})
+        角色库[键].update({'核心技值': 转浮点数(so[1])})
         print(f'{键}属性已更新')
 
 def 更新驱动盘库():
